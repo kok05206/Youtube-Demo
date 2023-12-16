@@ -12,23 +12,31 @@ router
   .route('/')
   // 채널 전체 조회 + 예외처리
   .get((req, res) => {
-    if (db.size) {
-      var channels = [];
+    var { userId } = req.body;
+    var channels = [];
 
+    // 1. db.size 와 userId가 1이상이면
+    if (db.size && userId) {
       db.forEach(function (value, key) {
-        channels.push(value);
+        if (value.userId === userId) {
+          channels.push(value);
+        }
       });
-      res.status(200).json(channels);
+      // 2. userId가 가지 채널이 있을 때
+      if (channels.length) {
+        res.status(200).json(channels);
+      } else {
+        notFoundChannel();
+      }
     } else {
-      res.status(404).json({
-        message: `조회할 채널이 없습니다.`,
-      });
+      notFoundChannel();
     }
   })
   // 채널 개별 생성 + 예외처리 = db에 저장
   .post((req, res) => {
     if (req.body.channelTitle) {
-      db.set(id++, req.body);
+      let channel = req.body;
+      db.set(id++, channel);
 
       res.status(201).json({
         message: `${db.get(id - 1).channelTitle} 채널을 응원합니다!`,
@@ -51,9 +59,7 @@ router
     if (channel) {
       res.status(200).json(channel);
     } else {
-      res.status(404).json({
-        message: `채널 정보를 찾을 수 없습니다.`,
-      });
+      notFoundChannel();
     }
   })
   // 채널 개별 수정
@@ -73,9 +79,7 @@ router
         message: `채널명이 정상적으로 수정되었습니다. 기존 채널명 : ${oldTitle} -> 수정된 채널명 : ${newTitle}`,
       });
     } else {
-      res.status(404).json({
-        message: `채널 정보를 찾을 수 없습니다.`,
-      });
+      notFoundChannel();
     }
   })
   // 채널 개별 삭제
@@ -90,10 +94,14 @@ router
         message: `${channel.channelTitle}이 정상적으로 삭제되었습니다.`,
       });
     } else {
-      res.status(404).json({
-        message: `채널 정보를 찾을 수 없습니다.`,
-      });
+      notFoundChannel();
     }
   });
+
+function notFoundChannel() {
+  res.status(404).json({
+    message: `채널 정보를 찾을 수 없습니다.`,
+  });
+}
 
 module.exports = router;
