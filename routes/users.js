@@ -3,8 +3,14 @@ const router = express.Router();
 const conn = require('../mariadb');
 const { body, validationResult } = require('express-validator');
 
+// jwt 모듈
+const jwt = require('jsonwebtoken');
+// dotenv 모듈
+const dotenv = require('dotenv');
+dotenv.config();
 router.use(express.json());
 
+// 콜백함수의 유효성 검사에 대한 에러내용을 함수로만들고 변수에 담아, 모듈화를 시켜서 미들웨어의 역할을 함.
 const validate = (req, res, next) => {
   const err = validationResult(req);
 
@@ -37,11 +43,28 @@ router.post(
       var loginUser = results[0];
 
       if (loginUser && loginUser.password == password) {
+        // token 발급
+        const token = jwt.sign(
+          {
+            email: loginUser.email,
+            name: loginUser.name,
+          },
+          process.env.PRIVATE_KEY,
+          {
+            expiresIn: '30m', // 유효기간 설정
+            issuer: 'inhwan',
+          }
+        );
+
+        res.cookie('token', token, {
+          httpOnly: true,
+        });
+
         res.status(200).json({
           message: `${loginUser.name}님 로그인 되었습니다.`,
         });
       } else {
-        res.status(404).json({
+        res.status(403).json({
           message: `이메일 또는 비밀번호가 틀렸습니다.`,
         });
       }
